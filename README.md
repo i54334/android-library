@@ -45,7 +45,7 @@ Unread Count Drawable
 ## gradle
 
 ```gradle
-    compile 'com.github.axet:android-library:1.3.5'
+    compile 'com.github.axet:android-library:1.4.4'
 ```
 
 ## maven
