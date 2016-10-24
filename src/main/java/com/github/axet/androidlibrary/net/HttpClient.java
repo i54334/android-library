@@ -451,7 +451,7 @@ public class HttpClient {
         builder.setConnectTimeout(CONNECTION_TIMEOUT);
         builder.setConnectionRequestTimeout(CONNECTION_TIMEOUT);
         builder.setProxy(proxy);
-        return builder.setProxy(proxy).build();
+        return builder.build();
     }
 
     public void setProxy(String host, int port, String scheme) {
