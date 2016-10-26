@@ -24,6 +24,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import com.github.axet.androidlibrary.R;
+import com.github.axet.androidlibrary.crypto.MD5;
 import com.github.axet.androidlibrary.net.HttpClient;
 
 import org.apache.commons.io.IOUtils;
@@ -39,8 +40,6 @@ import java.net.HttpCookie;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -61,44 +60,20 @@ public class WebViewCustom extends WebView {
     public static final String INJECTS_URL = "inject://";
     public static final String ABOUT_ERROR = "about:error";
 
-    String head;
-    String js;
-    String js_post;
+    protected String head;
+    protected String js;
+    protected String js_post;
 
-    String inject;
-    Thread thread;
-    Handler handler = new Handler();
-    HttpClient http;
-    String base; // since we can't call getUrl from Chrome IO Thread keep it here
-    DownloadListener listener;
-    ArrayList<String> injects = new ArrayList<>();
-    String html;
+    protected String inject;
+    protected Thread thread;
+    protected Handler handler = new Handler();
+    protected HttpClient http;
+    protected String base; // since we can't call getUrl from Chrome IO Thread keep it here
+    protected DownloadListener listener;
+    protected ArrayList<String> injects = new ArrayList<>();
+    protected String html;
 
-    public static final String md5(final String s) {
-        final String MD5 = "MD5";
-        try {
-            // Create MD5 Hash
-            MessageDigest digest = java.security.MessageDigest
-                    .getInstance(MD5);
-            digest.update(s.getBytes());
-            byte messageDigest[] = digest.digest();
-
-            // Create Hex String
-            StringBuilder hexString = new StringBuilder();
-            for (byte aMessageDigest : messageDigest) {
-                String h = Integer.toHexString(0xFF & aMessageDigest);
-                while (h.length() < 2)
-                    h = "0" + h;
-                hexString.append(h);
-            }
-            return hexString.toString();
-
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    static void logIO(String url, Throwable e) {
+    public static void logIO(String url, Throwable e) {
         while (e.getCause() != null) {
             e = e.getCause();
         }
@@ -360,6 +335,7 @@ public class WebViewCustom extends WebView {
             r.downloadText();
             return r;
         } catch (RuntimeException e) {
+            logIO(url, e);
             return new HttpClient.HttpError(e);
         }
     }
@@ -520,15 +496,22 @@ public class WebViewCustom extends WebView {
         }
     }
 
+    public void loadHtmlWithBaseURL(String baseUrl, HttpClient.DownloadResponse html, String historyUrl) {
+        if (html.getError() != null) { // on errors do not call loadBase
+            base = baseUrl;
+        }
+        loadHtmlWithBaseURL(base, html.getHtml(), historyUrl);
+    }
+
     public void loadHtmlWithBaseURL(String baseUrl, String html, String historyUrl) {
         loadDataWithBaseURL(baseUrl, html, HttpClient.CONTENTTYPE_HTML, Charset.defaultCharset().name(), historyUrl);
     }
 
     @Override
     public void loadDataWithBaseURL(String baseUrl, String data, String mimeType, String encoding, String historyUrl) {
-        // all inner calles already set url
+        // all inner callers already set url
         if (base == null || !base.equals(baseUrl)) { // external call
-            if (http != null) { // make updateCookies() mecanics work
+            if (http != null) { // make updateCookies() mechanics work
                 removeWebCookies();
             }
             base = baseUrl;
@@ -538,8 +521,12 @@ public class WebViewCustom extends WebView {
         super.loadDataWithBaseURL(baseUrl, data, mimeType, encoding, historyUrl);
     }
 
-    String loadBase(String data) {
+    protected String loadBase(String data) {
         Document doc = Jsoup.parse(data);
+        return loadBase(doc);
+    }
+
+    protected String loadBase(Document doc) {
         Element head = doc.getElementsByTag("head").first();
         if (head != null) {
             if (this.head != null)
@@ -554,10 +541,10 @@ public class WebViewCustom extends WebView {
         return doc.outerHtml();
     }
 
-    String addInject(String js) {
+    protected String addInject(String js) {
         int i = injects.size();
         injects.add(js);
-        return "<script type='text/javascript' src='" + INJECTS_URL + i + "?md5=" + md5(js) + "'/>";
+        return "<script type='text/javascript' src='" + INJECTS_URL + i + "?md5=" + MD5.digest(js) + "'/>";
     }
 
     @Override
@@ -567,7 +554,7 @@ public class WebViewCustom extends WebView {
     }
 
     // javascript can add cookies. update every new request;
-    void updateCookies(String url) {
+    protected void updateCookies(String url) {
         CookieManager inst = CookieManager.getInstance();
 
         if (Build.VERSION.SDK_INT < 21) {
@@ -628,6 +615,7 @@ public class WebViewCustom extends WebView {
             r.downloadText();
             return r;
         } catch (RuntimeException e) {
+            logIO(url, e);
             return new HttpClient.HttpError(e);
         }
     }

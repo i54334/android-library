@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
