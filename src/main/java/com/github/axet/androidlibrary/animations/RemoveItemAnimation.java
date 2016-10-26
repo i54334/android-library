@@ -7,7 +7,6 @@ import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.Transformation;
-import android.widget.ListView;
 
 public class RemoveItemAnimation extends Animation {
     ViewGroup list;
