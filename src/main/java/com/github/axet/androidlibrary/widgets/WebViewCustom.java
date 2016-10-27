@@ -336,7 +336,7 @@ public class WebViewCustom extends WebView {
             return r;
         } catch (RuntimeException e) {
             logIO(url, e);
-            return new HttpClient.HttpError(e);
+            return new HttpClient.HttpError(url, e);
         }
     }
 
@@ -592,7 +592,7 @@ public class WebViewCustom extends WebView {
                     onReceivedError(WebViewCustom.this, t.getMessage(), url);
                 }
             });
-            return new HttpClient.HttpError(e);
+            return new HttpClient.HttpError(url, e);
         }
     }
 
@@ -616,7 +616,7 @@ public class WebViewCustom extends WebView {
             return r;
         } catch (RuntimeException e) {
             logIO(url, e);
-            return new HttpClient.HttpError(e);
+            return new HttpClient.HttpError(url, e);
         }
     }
 

@@ -57,6 +57,7 @@ import cz.msebera.android.httpclient.auth.AuthScope;
 import cz.msebera.android.httpclient.auth.UsernamePasswordCredentials;
 import cz.msebera.android.httpclient.client.CookieStore;
 import cz.msebera.android.httpclient.client.CredentialsProvider;
+import cz.msebera.android.httpclient.client.RedirectException;
 import cz.msebera.android.httpclient.client.config.RequestConfig;
 import cz.msebera.android.httpclient.client.entity.UrlEncodedFormEntity;
 import cz.msebera.android.httpclient.client.methods.AbstractExecutionAwareRequest;
@@ -150,23 +151,35 @@ public class HttpClient {
         static final String UTF8 = "UTF8";
         Throwable e;
 
-        public HttpError(Throwable e) {
+        public HttpError(String url, Throwable e) {
             super("text/plain", UTF8, (InputStream) null);
             this.e = e;
+
+            Uri u = Uri.parse(url);
 
             Throwable t = e;
             while (t.getCause() != null)
                 t = t.getCause();
 
-            if (e instanceof ConnectTimeoutException) {
-                setHtml("Connection Timeout: " + t.getMessage());
+            if (t instanceof ConnectTimeoutException || t instanceof SocketTimeoutException) {
+                setTemplate("<h2>Connection Timeout</h2>\n" +
+                        "<b>Host:</b> " + u.getHost() + "<br/>\n" +
+                        "<b>Message:</b>" + TextUtils.htmlEncode(t.getMessage()));
                 return;
             }
 
-            if (e instanceof SocketTimeoutException) {
-                setHtml("Connection Timeout: " + t.getMessage());
+            if (t instanceof RedirectException) {
+                String a = u.getPath();
+                if (u.getQuery() != null) {
+                    a += "&" + u.getQuery();
+                }
+                setTemplate("<h2>Redirect Exception</h2>\n" +
+                        "<b>Host:</b> " + u.getHost() + "<br/>\n" +
+                        "<b>Url:</b> " + a + "<br/>\n" +
+                        "<b>Message:</b> " + TextUtils.htmlEncode(t.getMessage()));
                 return;
             }
+
             setHtml(e);
         }
 
@@ -178,11 +191,15 @@ public class HttpClient {
         }
 
         public void setHtml(String str) {
+            setTemplate(TextUtils.htmlEncode(str));
+        }
+
+        public void setTemplate(String str) {
             try {
                 String html = "<html>";
                 html += "<meta name=\"viewport\" content=\"initial-scale=1.0,user-scalable=no,maximum-scale=1,width=device-width\">";
                 html += "<body>";
-                html += TextUtils.htmlEncode(str);
+                html += str;
                 html += "</body></html>";
                 buf = html.getBytes(Charset.defaultCharset().name());
                 setData(new ByteArrayInputStream(buf));
