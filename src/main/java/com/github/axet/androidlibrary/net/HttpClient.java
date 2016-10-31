@@ -78,6 +78,7 @@ import cz.msebera.android.httpclient.impl.client.HttpClientBuilder;
 import cz.msebera.android.httpclient.impl.client.LaxRedirectStrategy;
 import cz.msebera.android.httpclient.impl.cookie.BasicClientCookie;
 import cz.msebera.android.httpclient.message.BasicNameValuePair;
+import cz.msebera.android.httpclient.protocol.HTTP;
 import cz.msebera.android.httpclient.protocol.HttpContext;
 import cz.msebera.android.httpclient.protocol.HttpCoreContext;
 import cz.msebera.android.httpclient.protocol.HttpRequestExecutor;
@@ -499,12 +500,15 @@ public class HttpClient {
     }
 
     public void addCookies(String cookies) {
-        CookieStore s = getCookieStore();
-        List<HttpCookie> cc = HttpCookie.parse(cookies);
-        for (HttpCookie c : cc) {
-            BasicClientCookie m = from(c);
-            removeCookie(m);
-            s.addCookie(m);
+        CookieStore cs = getCookieStore();
+        String[] ss = cookies.split("\n");
+        for (String s : ss) {
+            List<HttpCookie> cc = HttpCookie.parse(s);
+            for (HttpCookie c : cc) {
+                BasicClientCookie m = from(c);
+                removeCookie(m);
+                cs.addCookie(m);
+            }
         }
     }
 
@@ -556,7 +560,8 @@ public class HttpClient {
             appendAttribute(result, "domain", c.getDomain());
 
             if (!str.isEmpty())
-                str += ", ";
+                str += "\n";
+            str += "Set-Cookie: ";
             str += result.toString();
         }
         return str;
@@ -695,13 +700,11 @@ public class HttpClient {
     public DownloadResponse postResponse(String base, String url, List<NameValuePair> nvps) {
         try {
             HttpPost httpPost = new HttpPost(safe(url));
-            httpPost.setEntity(new UrlEncodedFormEntity(nvps));
+            httpPost.setEntity(new UrlEncodedFormEntity(nvps, Charset.defaultCharset()));
             CloseableHttpResponse response = execute(base, httpPost);
             return new DownloadResponse(httpClientContext, httpPost, response);
         } catch (RuntimeException e) {
             throw e;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         } finally {
             request = null;
         }
