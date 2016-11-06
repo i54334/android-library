@@ -25,8 +25,10 @@ public class SquareLinearLayout extends LinearLayout {
         super(context, attrs, defStyle);
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.SquareLinearLayout, defStyle, 0);
-        maxChild = a.getDimensionPixelSize(R.styleable.SquareLinearLayout_maxChild, -1);
-        a.recycle();
+        if (a != null) {
+            maxChild = a.getDimensionPixelSize(R.styleable.SquareLinearLayout_maxChild, -1);
+            a.recycle();
+        }
     }
 
     int max(int f) {
